@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Slaapstand Klok</title>
+    <style>
+        /* Reset de marges en zorg dat de achtergrond het hele scherm vult */
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #080a14; /* Donkerblauwe 'nacht' achtergrond */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+        
+        /* Zorg dat het canvas block-level is om scrollbalken te voorkomen */
+        canvas {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="klokCanvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('klokCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Zorg ervoor dat het canvas altijd perfect over het hele scherm past
+        function pasCanvasGrootteAan() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        
+        // Luister naar aanpassingen van de venstergrootte
+        window.addEventListener('resize', pasCanvasGrootteAan);
+        pasCanvasGrootteAan();
+
+        function tekenKlok(timestamp) {
+            // Wis het volledige canvas voor het nieuwe frame
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const cx = canvas.width / 2;
+            const cy = canvas.height / 2;
+            
+            // De basisgrootte van de klok schaalt mee met de kleinste zijde van het scherm
+            const basisStraal = Math.min(canvas.width, canvas.height) * 0.2; 
+
+            // Haal de huidige systeemtijd op
+            const nu = new Date();
+            const milliseconden = nu.getMilliseconds();
+            const seconden = nu.getSeconds() + milliseconden / 1000;
+            const minuten = nu.getMinutes() + seconden / 60;
+            const uren = (nu.getHours() % 12) + minuten / 60;
+
+            // Algemene styling voor de lijnen
+            ctx.lineCap = 'round';
+            ctx.strokeStyle = '#e0f7fa'; // Zacht, licht cyaan/wit voor een rustgevend effect
+            
+            // --- 1. De Uurwijzer ---
+            // Bereken de hoek (trek PI/2 af om bovenaan bij 12 uur te beginnen)
+            const uurHoek = (uren / 12) * Math.PI * 2 - (Math.PI / 2);
+            const uurLengte = basisStraal * 0.55;
+            
+            ctx.lineWidth = 5;
+            ctx.beginPath();
+            ctx.moveTo(cx, cy);
+            ctx.lineTo(cx + Math.cos(uurHoek) * uurLengte, cy + Math.sin(uurHoek) * uurLengte);
+            ctx.stroke();
+
+            // --- 2. De Minuutwijzer ---
+            const minuutHoek = (minuten / 60) * Math.PI * 2 - (Math.PI / 2);
+            const minuutLengte = basisStraal * 0.85;
+            
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(cx, cy);
+            ctx.lineTo(cx + Math.cos(minuutHoek) * minuutLengte, cy + Math.sin(minuutHoek) * minuutLengte);
+            ctx.stroke();
+
+            // --- 3. De Roterende Boog (Slaapstand effect) ---
+            // De boog draait onafhankelijk van de tijd, gebaseerd op de timestamp
+            const rotatieSnelheid = 0.0008; // Hoe hoger, hoe sneller de boog draait
+            const boogStartHoek = timestamp * rotatieSnelheid;
+            
+            // Lengte van de boog (bijv. 1.5 radialen is ongeveer een kwart cirkel)
+            const boogLengte = 1.8; 
+            const boogEindHoek = boogStartHoek + boogLengte;
+            
+            ctx.lineWidth = 2; // Iets dunnere lijn voor de boog
+            ctx.beginPath();
+            // De straal van de boog is net iets groter dan de minuutwijzer
+            ctx.arc(cx, cy, basisStraal, boogStartHoek, boogEindHoek, false);
+            ctx.stroke();
+
+            // Voeg een kleine decoratieve stip in het midden toe
+            ctx.beginPath();
+            ctx.arc(cx, cy, 4, 0, Math.PI * 2);
+            ctx.fillStyle = '#e0f7fa';
+            ctx.fill();
+
+            // Blijf de animatie herhalen
+            requestAnimationFrame(tekenKlok);
+        }
+
+        // Start de animatieloop
+        requestAnimationFrame(tekenKlok);
+    </script>
+</body>
+</html>
